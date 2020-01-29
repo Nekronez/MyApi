@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using MyApi.Models;
 
@@ -19,12 +20,12 @@ namespace MyApi.Controllers
     public class UserController : ControllerBase
     {
         private AppDbContext db;
-        public IConfiguration _config { get; }
+        public TokenSettings _tokenSettings { get; }
 
-        public UserController(AppDbContext context, IConfiguration configuration)
+        public UserController(AppDbContext context, IOptions<TokenSettings> options)
         {
             db = context;
-            _config = configuration;
+            _tokenSettings = options.Value;
         }
 
         [Authorize]
@@ -45,13 +46,13 @@ namespace MyApi.Controllers
 
             var now = DateTime.UtcNow;
             var jwt = new JwtSecurityToken(
-                    issuer: _config.GetValue<string>("TokenSettings:Issuer"),
-                    audience: _config.GetValue<string>("TokenSettings:Audience"),
+                    issuer: _tokenSettings.Issuer,
+                    audience: _tokenSettings.Audience,
                     notBefore: now,
                     claims: identity.Claims,
-                    expires: now.Add(TimeSpan.FromMinutes(_config.GetValue<int>("TokenSettings:Lifetime"))),
+                    expires: now.Add(TimeSpan.FromMinutes(_tokenSettings.Lifetime)),
                     signingCredentials: new SigningCredentials(
-                        new SymmetricSecurityKey(Encoding.ASCII.GetBytes(_config.GetValue<string>("TokenSettings:Key"))),
+                        new SymmetricSecurityKey(Encoding.ASCII.GetBytes(_tokenSettings.Key)),
                         SecurityAlgorithms.HmacSha256)
                     );
 
