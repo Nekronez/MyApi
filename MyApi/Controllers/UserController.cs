@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
@@ -27,12 +28,22 @@ namespace MyApi.Controllers
             db = context;
             _tokenSettings = options.Value;
         }
-
+        
         [Authorize]
         [HttpGet("/info")]
         public IActionResult Info()
         {
-            return Ok("Hello");
+            return Ok("Hello "+ User.Identity.Name);
+            
+        }
+
+        [Authorize(Roles="Admin")]
+        [HttpGet("/role")]
+        public IActionResult Role()
+        {
+
+            return Ok("Hello " + User.Identity.Name);
+
         }
 
         [HttpPost("/token")]
@@ -69,20 +80,25 @@ namespace MyApi.Controllers
 
         private ClaimsIdentity GetIdentity(User user)
         {
-            User person = db.users.FirstOrDefault(u => u.Email == user.Email && u.Password == user.Password);
+            User person = db.users.Where(u => u.Email == user.Email && u.Password == user.Password).Include(u => u.Role).First();
+
             if (person != null)
             {
                 var claims = new List<Claim>
                 {
                     new Claim(ClaimsIdentity.DefaultNameClaimType, person.Email),
+                    new Claim(ClaimsIdentity.DefaultRoleClaimType, person.Role?.Name),
                 };
-                ClaimsIdentity claimsIdentity =
-                new ClaimsIdentity(claims, "Token", ClaimsIdentity.DefaultNameClaimType,
-                    ClaimsIdentity.DefaultRoleClaimType);
+
+                ClaimsIdentity claimsIdentity = new ClaimsIdentity(
+                    claims, 
+                    "Token", 
+                    ClaimsIdentity.DefaultNameClaimType,
+                    ClaimsIdentity.DefaultRoleClaimType
+                );
                 return claimsIdentity;
             }
 
-            // если пользователя не найдено
             return null;
         }
     }
