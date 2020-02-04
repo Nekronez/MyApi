@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using MyApi.Models;
@@ -22,17 +23,21 @@ namespace MyApi.Controllers
     {
         private AppDbContext db;
         public TokenSettings _tokenSettings { get; }
+        private ILogger _logger;
 
-        public UserController(AppDbContext context, IOptions<TokenSettings> options)
+
+        public UserController(AppDbContext context, IOptions<TokenSettings> options, ILoggerFactory loggerFactory)
         {
             db = context;
             _tokenSettings = options.Value;
+            _logger = loggerFactory.CreateLogger("FileLogger");
         }
         
         [Authorize]
         [HttpGet("/info")]
         public IActionResult Info()
         {
+            _logger.LogInformation("HERE");
             return Ok("Hello "+ User.Identity.Name);
             
         }
